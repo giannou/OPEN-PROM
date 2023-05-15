@@ -46,7 +46,7 @@ iRatePriProTotPriNeeds(allCy,EF,YTIME)	        "Rate of Primary Production in To
 iFuelExprts(allCy,EF,YTIME)	                    "Fuel Exports (Mtoe)"	
 iSuppExports(allCy,EF,YTIME)                	"Supplementary parameter for  exports (Mtoe)"
 iRatioImpFinElecDem(allCy,YTIME)	            "Ratio of imports in final electricity demand (1)"	
-iElastCO2Seq(allCy,CO2SEQELAST)	            "Elasticities for CO2 sequestration cost curve (1)"		
+iElastCO2Seq(allCy,CO2SEQELAST)	                "Elasticities for CO2 sequestration cost curve (1)"		
 ;
 
 
@@ -212,7 +212,7 @@ VNetImports(allCy,EFS,YTIME)	                        "Net Imports (Mtoe)"
 *** CO2 SEQUESTRATION COST CURVES VARIABLES
 VCO2ElcHrgProd(allCy,YTIME)	                            "CO2 captured by electricity and hydrogen production plants (Mtn CO2)"
 VCumCO2Capt(allCy,YTIME)	                            "Cumulative CO2 captured (Mtn CO2)"		
-VWghtTrnstLnrToExpo(allCy,YTIME)	                    "Weight for transtition from linear CO2 sequestration cost curve to exponential (1)"
+VWghtTrnstLnrToExpo(allCy,YTIME)	                    "Transtition weight for shifting from linear to exponential CO2 sequestration cost curve (1)"
 VCO2CO2SeqCsts(allCy,YTIME)	                            "Cost curve for CO2 sequestration costs (Euro/tn of CO2 sequestrated)"				 	 				
 *** Miscellaneous
 vDummyObj                                               "Dummy maximisation variable (1)"
