@@ -90,20 +90,20 @@ QHourProdCostInv(runCy,PGALL,HOUR,YTIME)$(TIME(YTIME)) ..
                   ));
 
 * Compute hourly production cost used in investment decisions
-QHourProdCostInvDec(runCy,PGALL,HOUR,YTIME)$(TIME(YTIME) $NOCCS(PGALL)) ..
-         VHourProdCostTech(runCy,PGALL,HOUR,YTIME) =E=
-         VPowerPlantNewEq(runCy,PGALL,YTIME)*VHourProdTech(runCy,PGALL,HOUR,YTIME)+
-         sum(CCS$CCS_NOCCS(CCS,PGALL), VPowerPlaShrNewEq(runCy,CCS,YTIME)*VHourProdTech(runCy,CCS,HOUR,YTIME)); 
+*QHourProdCostInvDec(runCy,PGALL,HOUR,YTIME)$(TIME(YTIME) $NOCCS(PGALL)) ..
+*         VHourProdCostTech(runCy,PGALL,HOUR,YTIME) =E=
+*         VPowerPlantNewEq(runCy,PGALL,YTIME)*VHourProdTech(runCy,PGALL,HOUR,YTIME)+
+*         sum(CCS$CCS_NOCCS(CCS,PGALL), VPowerPlaShrNewEq(runCy,CCS,YTIME)*VHourProdTech(runCy,CCS,HOUR,YTIME)); 
 
 * Compute gamma parameter used in CCS/No CCS decision tree
-QGammaInCcsDecTree(runCy,YTIME)$TIME(YTIME)..
-         VSensCcs(runCy,YTIME) =E= 20+25*EXP(-0.06*((sum(NAP$NAPtoALLSBS(NAP,"PG"),VCarVal(runCy,NAP,YTIME-1)))));
+*QGammaInCcsDecTree(runCy,YTIME)$TIME(YTIME)..
+*         VSensCcs(runCy,YTIME) =E= 20+25*EXP(-0.06*((sum(NAP$NAPtoALLSBS(NAP,"PG"),VCarVal(runCy,NAP,YTIME-1)))));
 
 * Compute hourly production cost used in investment decisions"
-QHourProdCostInvDecisions(runCy,PGALL,HOUR,YTIME)$(TIME(YTIME) $(CCS(PGALL) or NOCCS(PGALL))) ..
-         VHourProdCostOfTech(runCy,PGALL,HOUR,YTIME) 
-         =E=
-          VHourProdTech(runCy,PGALL,HOUR,YTIME)**(-VSensCcs(runCy,YTIME))       ;
+*QHourProdCostInvDecisions(runCy,PGALL,HOUR,YTIME)$(TIME(YTIME) $(CCS(PGALL) or NOCCS(PGALL))) ..
+*         VHourProdCostOfTech(runCy,PGALL,HOUR,YTIME) 
+*         =E=
+*          VHourProdTech(runCy,PGALL,HOUR,YTIME)**(-VSensCcs(runCy,YTIME))       ;
 * Transport
 
 * Compute passenger cars market extension (GDP dependent)

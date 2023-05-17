@@ -226,7 +226,7 @@ iRefCapacity(runCy,YTIME)= iSuppRefCapacity(runCy,"REF_CAP",YTIME);
 iResRefCapacity(runCy,YTIME) = iSupResRefCapacity(runCy,"REF_CAP_RES",YTIME);
 iTransfInpGasworks(runCy,EFS,YTIME)= iSuppTransfInputPatFuel(EFS,YTIME);
 iShareFueTransfInput(runCy,EFS)$sum(EF$EFS(EF),iTransfInpGasworks(runCy,EF,"2010")) =  iTransfInpGasworks(runCy,EFS,"2010") / sum(EF$EFS(EF),iTransfInpGasworks(runCy,EF,"2010"));
-*VDistrLosses.FX(runCy,EFS,TT)$PERIOD(TT) = VDistrLosses.L(runCy,EFS,TT);
+*VDistrLosses.FX(runCy,EFS,TT)$period(ytime) = VDistrLosses.L(runCy,EFS,TT);
 iRateLossesFinCons(runCy,EFS,YTIME)$an(YTIME)  = iRateLossesFinConsSup(runCy,EFS, YTIME)*iEneProdRDscenarios(runCy,"PG",YTIME);
 iEffDHPlants(runCy,EFS,YTIME)  = sum(PGEFS$sameas(EFS,PGEFS),iParDHEfficiency(PGEFS,"2010"));
 iEffDHPlants(runCy,EF,YTIME)$(an(ytime) )= iEffDHPlants(runCy,EF,YTIME) / iEneProdRDscenarios(runCy,"PG",YTIME);
@@ -374,7 +374,7 @@ iCapGrossCosPlanType(runCy,PGALL,YTIME)$(ord(YTIME) eq TF-12)  = iInvCost(PGALL,
 iCapGrossCosPlanType(runCy,PGALL,YTIME)$(ord(YTIME) eq TF+3) = iInvCost(PGALL,"2020");
 iCapGrossCosPlanType(runCy,PGALL,YTIME)$(ord(YTIME) eq TF+33) = iInvCost(PGALL,"2050");
 iCapGrossCosPlanType(runCy,PGALL,YTIME)$(ord(YTIME)<11) = iCapGrossCosPlanType(runCy,PGALL,"2010");
-iGrossCapCosSubRen(runCy,PGALL,YTIME)=iCapGrossCosPlanType(runCy,PGALL,YTIME);
+iGrossCapCosSubRen(allCy,PGALL,YTIME)$runCy(allCy)=iCapGrossCosPlanType(allCy,PGALL,YTIME);
 table iFixOandMCost(PGALL,YTIME)    "Fixed O&M costs (Euro2005/Kw)"
 $ondelim
 $include"./iFixOandMCost.csv"
@@ -417,3 +417,95 @@ loop YTIME$((ord(YTIME) gt TF+3) $(ord(YTIME) lt TF+33)) do
          iVarGroCostPlaType(runCy,PGALL,YTIME) = (iVarGroCostPlaType(runCy,PGALL,"2050")-
          iVarGroCostPlaType(runCy,PGALL,"2020"))/30+iVarGroCostPlaType(runCy,PGALL,YTIME-1);
 endloop;
+
+VRenValue.FX(YTIME) = 0 ;
+
+table iDomFuelPrices(allCy,SBS,EF,YTIME)	    "Domestic Fuel Prices per fuel and Subsector (Dollars2005/toe)"
+$ondelim
+$include"./iDomFuelPrices.csv"
+$offdelim
+;
+iConsPricesFuelSub(allCy,SBS,EF,YTIME)$(not AN(YTIME)) = iDomFuelPrices(allCy,SBS,EF,YTIME)/1000;
+VFuelPriceSub.L(runCy,SBS,EF,TT)$(period(ytime)$ALTEF(EF)) = iConsPricesFuelSub(runCy,SBS,EF,"2019");
+
+VFuelPriceSub.FX(runCy,SBS,EF,YTIME)$(SECTTECH(SBS,EF) $(not HEATPUMP(EF))  $(not An(YTIME))) = iConsPricesFuelSub(runCy,SBS,EF,YTIME);
+VFuelPriceSub.FX(runCy,SBS,ALTEF,YTIME)$(SECTTECH(SBS,ALTEF) $(not An(YTIME))) = sum(EF$ALTMAP(SBS,ALTEF,EF),iConsPricesFuelSub(CYrun,SBS,EF,YTIME));
+VFuelPriceSub.FX(runCy,"PG","NUC",YTIME) = 0.025;      !! fixed price for nuclear fuel to 25Euro/toe
+VFuelPriceSub.FX(runCy,"H2P","NUC",YTIME) = 0.025;     !! fixed price for nuclear fuel to 25Euro/toe
+VFuelPriceSub.fx(runCy,INDDOM,"HEATPUMP",YTIME)$(SECTTECH(INDDOM,"HEATPUMP") $(not An(YTIME))) = iConsPricesFuelSub(CYrun,INDDOM,"ELC",YTIME);
+VFuelPriceSub.fx(runCy,"H2P",EF,YTIME)$(SECTTECH("H2P",EF) $(not An(YTIME))) = VFuelPriceSub.l(runCy,"PG",EF,YTIME);
+VFuelPriceSub.fx(runCy,"H2P","ELC",YTIME)$(not An(YTIME)) = VFuelPriceSub.l(runCy,"OI","ELC",YTIME);
+
+table iResDomPriEq(allCy,SBS,EF,YTIME)	    "Residuals for domestic prices in equations"
+$ondelim
+$include"./iResDomPriEq.csv"
+$offdelim
+;
+iResInPriceEq(allCy,SBS,EF,YTIME)$an(YTIME) = iResDomPriEq(allCy,SBS,EF,YTIME)/1000;
+iIntToConsuPrices(runCy,SBS,EF,YTIME) = 0;
+
+
+VElecPriInduResConsu.FX(runCy,"i",YTIME)$(not an(ytime)) = VFuelPriceSub.l(runCy,"OI","ELC",YTIME)*sTWhToMtoe;
+VElecPriInduResConsu.FX(runCy,"r",YTIME)$(not an(ytime)) = VFuelPriceSub.l(runCy,"HOU","ELC",YTIME)*sTWhToMtoe;
+
+iFacElecPriConsu(allCy,ELCPCHAR,YTIME)$an(YTIME) = iContrElecPrice(ELCPCHAR,YTIME);
+
+VRenShareElecProdSub.FX(runCy,YTIME)$(NOT AN(YTIME))=0;
+VAvgPowerGenCostShoTrm.L(runCy,ESET,"2018") = 0;
+VAvgPowerGenCostShoTrm.L(runCy,ESET,"2020") = 0;
+
+VElecPriInduResConsu.L(runCy,ESET,TT)$period(ytime) = (1 + iFacElecPriConsu(runCy,"VAT",TT)) *
+     (
+      (
+        (VFuelPriceSub.L(runCy,"OI","ELC",TT-1)*0.086)$TFIRST(TT-1)+
+          (  iFacElecPriConsu(runCy,"IND_RES",TT-1) + VRenShareElecProdSub.L(runCy,TT-1)*(VRenValue.L(TT)*8.6e-5)+
+                iFacElecPriConsu(runCy,"W_INDU",TT-1)*VAvgPowerGenLongTrm.L(runCy,"i",TT-1) +
+                (1-iFacElecPriConsu(runCy,"W_INDU",TT-1))*VAvgPowerGenCostShoTrm.L(runCy,"i",TT-1)
+               )$(not TFIRST(TT-1))
+                 )$ISET(ESET)
+                  +
+                    ( (VFuelPriceSub.L(runCy,"HOU","ELC",TT-1)*0.086)$TFIRST(TT-1)+
+                     (  iFacElecPriConsu(runCy,"TERT_RES",TT-1) + VRenShareElecProdSub.L(runCy,TT-1)*(VRenValue.l(TT)*8.6e-5)+
+                        iFacElecPriConsu(runCy,"W_TERT",TT-1)*VAvgPowerGenLongTrm.L(runCy,"r",TT-1) +
+                          (1-iFacElecPriConsu(runCy,"W_TERT",TT-1))*VAvgPowerGenCostShoTrm.L(runCy,"r",TT-1)
+                           )$(not TFIRST(TT-1))
+                            )$RSET(ESET));
+iEffValueInEuro(allCy,SBS,YTIME) = 0;
+*iHydrogenPri(allCy,SBS,YTIME) = 4.3;
+*iHydrogenPri.L(allCy,SBS,YTIME) = 2;
+*iHydrogenPri.FX(allCy,SBS,YTIME) $(not an(YTIME)) = 1e-5;
+*iHydrogenPri.FX(runCy,SBS,TT)$period(ytime) = iHydrogenPri.L(runCy,SBS,TT);
+VHydrogenPri.FX(runCy,TRANSE,"2011")= iConsPricesFuelSub(runCy,TRANSE,"H2F","2011");
+VHydrogenPri.FX(runCy,"PG","2011") = iConsPricesFuelSub(runCy,"PG","H2F","2011");
+VHydrogenPri.FX(runCy,INDDOM,"2011") = iConsPricesFuelSub(runCy,INDDOM,"STE1AH2F","2011");
+
+VFuelPriceSub.L(runCy,SBS,EF,TT)$(period(ytime) $SECTTECH(SBS,EF)) = (
+                 iResInPriceEq(runCy,SBS,EF,TT) + VFuelPriceSub.L(runCy,SBS,EF,TT-1)
+                 + iIntToConsuPrices(runCy,SBS,EF,TT) * sum(WEF$EFtoWEF(SBS,EF,WEF), (iIntPricesMainFuels(WEF,TT) 
+                 - iIntPricesMainFuels(WEF,TT-1)) / 1000)
+                 + iCo2EmiFac(runCy,SBS,EF,TT) *sum(NAP$NAPtoALLSBS(NAP,SBS),
+                 (VCarVal.L(runCy,NAP,TT)  - VCarVal.L(runCy,NAP,TT-1)))/1000)$( not (ELCEF(EF) or HEATPUMP(EF) or ALTEF(EF)))
+                 /1000$DSBS(SBS)
+                 +
+                 ((iResInPriceEq(runCy,SBS,EF,TT)*sTWhToMtoe+VElecPriInduResConsu.L(runCy,"i",TT)$INDTRANS(SBS)
+                 +VElecPriInduResConsu.L(runCy,"r",TT)$RESIDENT(SBS))/sTWhToMtoe 
+                 + (iEffValueInEuro(runCy,SBS,TT)/1000)$DSBS(SBS))$(ELCEF(EF) or HEATPUMP(EF))
+                 +
+                 (VHydrogenPri(runCy,SBS,TT-1)/1000)$(H2EF(EF) or sameas("STE1AH2F",EF));
+
+
+VFuelPriceSub.L(runCy,SBS,EF,TT)$(period(ytime) $ALTEF(EF)) = iConsPricesFuelSub(runCy,SBS,EF,"2011")  ;
+
+VHourProdTech.L(runCy,PGALL,HOUR,TT)$period(ytime) =
+     ( (
+      ( ( iDisc(runCy,"PG",TT-4) * exp(iDisc(runCy,"PG",TT-4)*iTechLftPlaType(PGALL))
+           / (exp(iDisc(runCy,"PG",TT-4)*iTechLftPlaType(PGALL)) -1))
+              * iGrossCapCosSubRen(runCy,PGALL,TT-4)* 1E3 * iCGI(runCy,TT-4)  + iFixGrosCostPlaType(runCy,PGALL,TT-4)
+                )/iPlantAvailRate(runCy,PGALL,TT-4) / (1000*(ord(HOUR)-1+0.25))
+                  + iVarGroCostPlaType(runCy,PGALL,TT-4)/1E3 + ((VRenValue.L(TT)*8.6e-5))$( not ( PGREN(PGALL) 
+                    $(not sameas("PGASHYD",PGALL)) $(not sameas("PGSHYD",PGALL)) $(not sameas("PGLHYD",PGALL)) ))
+                    + sum(PGEF$PGALLtoEF(PGALL,PGEF), (VFuelPriceSub.L(runCy,"PG",PGEF,TT-4)+
+                        VCO2CO2SeqCsts.L(runCy,TT-4)*1e-3*iCo2EmiFac(runCy,"PG",PGEF,TT-4)
+                         +1e-3*iCo2EmiFac(runCy,"PG",PGEF,TT-4)*
+                         (sum(NAP$NAPtoALLSBS(NAP,"PG"),VCarVal.L(runCy,NAP,TT-4))))
+                         *0.086/VPlantEffPlantType(runCy,PGALL,TT-4))$(not PGREN(PGALL))));
