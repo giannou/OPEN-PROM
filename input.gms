@@ -167,7 +167,7 @@ $ondelim
 $include"./iSuppTransfers.csv"
 $offdelim
 ;
-table iSuppPrimProd(allCy,PPRODEF,YTIME)	                     "Supplementary Parameter for Primary Production"
+table iSuppPrimProd(allCy,PPRODEF,YTIME)	          "Supplementary Parameter for Primary Production (Mtoe)"
 $ondelim
 $include"./iSuppPrimProd.csv"
 $offdelim
@@ -178,7 +178,7 @@ $ondelim
 $include"./iIntFuelPrcsBslnScnr.csv"
 $offdelim
 ;
-table iSuppRatePrimProd(allCy,EF,YTIME)	              "Supplementary Parameter for iRatePrimProd"	
+table iSuppRatePrimProd(allCy,EF,YTIME)	              "Supplementary Parameter for iRatePrimProd (1)"	
 $ondelim
 $include"./iSuppRatePrimProd.csv"
 $offdelim
@@ -210,7 +210,18 @@ $include"./iLoadFactorAdj.csv"
 $offdelim
 ;
 iBaseLoadShareDem(allCy,DSBS,YTIME)$an(YTIME)  = iLoadFactorAdj(allCy,DSBS,YTIME);
-iElastCO2Seq(allCy,CO2SEQELAST) = ICO2SeqData(allCy,CO2SEQELAST,"2010");
+table iCO2SeqData(allCy,CO2SEQELAST,YTIME)	       "Data for CO2 sequestration (1)" 
+$ondelim
+$include"./iCO2SeqData.csv"
+$offdelim
+;
+iElastCO2Seq(allCy,CO2SEQELAST) = iCO2SeqData(allCy,CO2SEQELAST,"2010");
+table iResDemSub(allCy,SBS,YTIME)                  "Residuals in total energy demand per subsector (1)"
+$ondelim
+$include"./iResDemSub.csv"
+$offdelim
+;
+iElastCO2Seq(allCy,CO2SEQELAST) = iCO2SeqData(allCy,CO2SEQELAST,"2010");
 iRatioImpFinElecDem(runCy,YTIME)$an(YTIME) = iSuppRefCapacity(runCy,"ELC_IMP",YTIME);
 iFuelExprts(runCy,EFS,YTIME) = iSuppExports(runCy,EFS,YTIME);
 iIntPricesMainFuelsBsln(WEF,YTIME) = iIntFuelPrcsBslnScnr(WEF,YTIME);
@@ -231,7 +242,19 @@ iShareFueTransfInput(runCy,EFS)$sum(EF$EFS(EF),iTransfInpGasworks(runCy,EF,"2010
 iRateLossesFinCons(runCy,EFS,YTIME)$an(YTIME)  = iRateLossesFinConsSup(runCy,EFS, YTIME)*iEneProdRDscenarios(runCy,"PG",YTIME);
 iEffDHPlants(runCy,EFS,YTIME)  = sum(PGEFS$sameas(EFS,PGEFS),iParDHEfficiency(PGEFS,"2010"));
 iEffDHPlants(runCy,EF,YTIME)$(an(ytime) )= iEffDHPlants(runCy,EF,YTIME) / iEneProdRDscenarios(runCy,"PG",YTIME);
-
+table iPwrLoadFactorDem(allCy,SBS,YTIME)              "Parameters for load factor adjustment (1)"
+$ondelim
+$include"./iPwrLoadFactorDem.csv"
+$offdelim
+;
+table iLoadFactorAdjMxm(allCy,VARIOUS_LABELS,YTIME)               "Parameter for load factor adjustment iMxmLoadFacElecDem (1)"
+$ondelim
+$include"./iLoadFactorAdjMxm.csv"
+$offdelim
+;
+iBslCorrection(allCy,YTIME)$an(YTIME) = iLoadFactorAdjMxm(allCy,"AMAXBASE",YTIME);
+iMxmLoadFacElecDem(allCy,YTIME)$an(YTIME) = iLoadFactorAdjMxm(allCy,"MAXLOADSH",YTIME);
+iLoadFacElecDem(allCy,DSBS,YTIME)$(ord(YTIME)>(ordfirst-4)) = iPwrLoadFactorDem(allCy,DSBS,YTIME);
 *Calculation of consumer size groups and their distribution function
 iNcon(TRANSE)$(sameas(TRANSE,"PC") or sameas(TRANSE,"GU")) = 10; !! 11 different consumer size groups for cars and trucks
 iNcon(TRANSE)$(not (sameas(TRANSE,"PC") or sameas(TRANSE,"GU"))) = 1; !! 2 different consumer size groups for inland navigation, trains, busses and aviation
@@ -336,3 +359,73 @@ ENDLOOP;
 
 iCumDistrFuncConsSize(allCy,DSBS) = sum(rCon, iDisFunConSize(allCy,DSBS,rCon));
 iCGI(allCy,YTIME) = 1;
+iLoadCurveConstr(allCy,YTIME)=0;
+
+table iResTotCapMxmLoad(allCy,PGRES,YTIME)              "Residuals for total capacity and maximum load (1)"	
+$ondelim
+$include"./iResTotCapMxmLoad.csv"
+$offdelim
+;
+iResMargTotAvailCap(allCy,PGRES,YTIME)$an(YTIME) = iResTotCapMxmLoad(allCy,PGRES,YTIME);
+table iInvCost(PGALL,YTIME)             "Investment Cost (KEuro2005/Kw)"
+$ondelim
+$include"./iInvCost.csv"
+$offdelim
+;
+table iVarCost(PGALL,YTIME)             "Investment Cost (KEuro2005/Kw)"
+$ondelim
+$include"./iVarCost.csv"
+$offdelim
+;
+iVarGroCostPlaType(runCy,PGALL,YTIME)$(ord(YTIME) eq TF-12)  = iVarCost(PGALL,"2011");
+iVarGroCostPlaType(runCy,PGALL,YTIME)$(ord(YTIME) eq TF+3) = iVarCost(PGALL,"2020");
+iVarGroCostPlaType(runCy,PGALL,YTIME)$(ord(YTIME) eq TF+33) = iVarCost(PGALL,"2050");
+iVarGroCostPlaType(runCy,PGALL,YTIME)$(ord(YTIME)<11) = iVarGroCostPlaType(runCy,PGALL,"2011");
+
+iCapGrossCosPlanType(runCy,PGALL,YTIME)$(ord(YTIME) eq TF-12)  = iInvCost(PGALL,"2011");
+iCapGrossCosPlanType(runCy,PGALL,YTIME)$(ord(YTIME) eq TF+3) = iInvCost(PGALL,"2020");
+iCapGrossCosPlanType(runCy,PGALL,YTIME)$(ord(YTIME) eq TF+33) = iInvCost(PGALL,"2050");
+iCapGrossCosPlanType(runCy,PGALL,YTIME)$(ord(YTIME)<11) = iCapGrossCosPlanType(runCy,PGALL,"2010");
+iGrossCapCosSubRen(runCy,PGALL,YTIME)=iCapGrossCosPlanType(runCy,PGALL,YTIME);
+table iFixOandMCost(PGALL,YTIME)    "Fixed O&M costs (Euro2005/Kw)"
+$ondelim
+$include"./iFixOandMCost.csv"
+$offdelim
+;
+table iAvailRate(PGALL,YTIME)	    "Plant availability rate (1)"
+$ondelim
+$include"./iAvailRate.csv"
+$offdelim
+;
+iPlantAvailRate(runCy,PGALL,"2011") = iAvailRate(PGALL,"2011");
+iPlantAvailRate(runCy,PGALL,"2020") = iAvailRate(PGALL,"2020");
+iPlantAvailRate(runCy,PGALL,"2050") = iAvailRate(PGALL,"2050");
+iFixGrosCostPlaType(runCy,PGALL,YTIME)$(ord(YTIME) eq TF-12)  = iFixOandMCost(PGALL,"2011");
+iFixGrosCostPlaType(runCy,PGALL,YTIME)$(ord(YTIME) eq TF+3) = iFixOandMCost(PGALL,"2020");
+iFixGrosCostPlaType(runCy,PGALL,YTIME)$(ord(YTIME) eq TF+33) = iFixOandMCost(PGALL,"2050");
+
+loop(runCy,PGALL,YTIME)$AN(YTIME) DO
+         abort $(iGrossCapCosSubRen(runCy,PGALL,YTIME)<0) "CAPITAL COST IS NEGATIVE", iGrossCapCosSubRen
+ENDLOOP;
+
+loop YTIME$((ord(YTIME) gt TF-12) $(ord(YTIME) lt TF+3)) do
+         iCapGrossCosPlanType(runCy,PGALL,YTIME) = (iCapGrossCosPlanType(runCy,PGALL,"2020")-
+         iCapGrossCosPlanType(runCy,PGALL,"2011"))/15+iCapGrossCosPlanType(runCy,PGALL,YTIME-1);
+         iFixGrosCostPlaType(runCy,PGALL,YTIME) = (iFixGrosCostPlaType(runCy,PGALL,"2020")-
+         iFixGrosCostPlaType(runCy,PGALL,"2011"))/15+iFixGrosCostPlaType(runCy,PGALL,YTIME-1);
+         iPlantAvailRate(runCy,PGALL,YTIME) = (iPlantAvailRate(runCy,PGALL,"2020")-
+         iPlantAvailRate(runCy,PGALL,"2011"))/15+iPlantAvailRate(runCy,PGALL,YTIME-1);
+         iVarGroCostPlaType(runCy,PGALL,YTIME) = (iVarGroCostPlaType(runCy,PGALL,"2020")-
+         iVarGroCostPlaType(runCy,PGALL,"2011"))/15+iVarGroCostPlaType(runCy,PGALL,YTIME-1);
+endloop;
+
+loop YTIME$((ord(YTIME) gt TF+3) $(ord(YTIME) lt TF+33)) do
+         iCapGrossCosPlanType(runCy,PGALL,YTIME) = (iCapGrossCosPlanType(runCy,PGALL,"2050")-
+         iCapGrossCosPlanType(runCy,PGALL,"2020"))/30+iCapGrossCosPlanType(runCy,PGALL,YTIME-1);
+         iFixGrosCostPlaType(runCy,PGALL,YTIME) = (iFixGrosCostPlaType(runCy,PGALL,"2050")-
+         iFixGrosCostPlaType(runCy,PGALL,"2020"))/30+iFixGrosCostPlaType(runCy,PGALL,YTIME-1);
+         iPlantAvailRate(runCy,PGALL,YTIME) = (iPlantAvailRate(runCy,PGALL,"2050")-
+         iPlantAvailRate(runCy,PGALL,"2020"))/30+iPlantAvailRate(runCy,PGALL,YTIME-1);
+         iVarGroCostPlaType(runCy,PGALL,YTIME) = (iVarGroCostPlaType(runCy,PGALL,"2050")-
+         iVarGroCostPlaType(runCy,PGALL,"2020"))/30+iVarGroCostPlaType(runCy,PGALL,YTIME-1);
+endloop;

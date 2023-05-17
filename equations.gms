@@ -24,6 +24,86 @@ QElecConsAll(runCy,DSBS,YTIME)$TIME(YTIME)..
              =E=
          sum(INDDOM $SAMEAS(INDDOM,DSBS), VConsFuel(runCy,INDDOM,"ELC",YTIME)) + sum(TRANSE $SAMEAS(TRANSE,DSBS), VDemTr(runCy,TRANSE,"ELC",YTIME));
 
+* Compute load factor of entire domestic system
+QLoadFacDom(runCy,YTIME)$TIME(YTIME)..
+         VCapChpPlants(runCy,YTIME)
+             =E=
+         (sum(INDDOM,VConsFuel(runCy,INDDOM,"ELC",YTIME)) + sum(TRANSE, VDemTr(runCy,TRANSE,"ELC",YTIME)))/
+         (sum(INDDOM,VConsFuel(runCy,INDDOM,"ELC",YTIME)/iLoadFacElecDem(runCy,INDDOM,YTIME)) + 
+         sum(TRANSE, VDemTr(runCy,TRANSE,"ELC",YTIME)/iLoadFacElecDem(runCy,TRANSE,YTIME)));         
+
+* Compute elerctricity peak load
+QElecPeakLoad(runCy,YTIME)$TIME(YTIME)..
+         VElecPeakLoad(runCy,YTIME)
+             =E=
+         VElecDem(runCy,YTIME)/(VCapChpPlants(runCy,YTIME)*sGwToTwhPerYear);
+
+* Compute baseload corresponding to maximum load
+QBslMaxmLoad(runCy,YTIME)$TIME(YTIME)..
+         (VElecDem(runCy,YTIME)-VBslMaxmLoad(runCy,YTIME)*sGwToTwhPerYear)
+             =E=
+         iMxmLoadFacElecDem(runCy,YTIME)*(VElecPeakLoad(runCy,YTIME)-VBslMaxmLoad(runCy,YTIME))*sGwToTwhPerYear;  
+
+* Compute electricity base load
+QElecBaseLoad(runCy,YTIME)$TIME(YTIME)..
+         VCorrBaseLoad(runCy,YTIME)
+             =E=
+         (1/(1+Exp(iBslCorrection(runCy,YTIME)*(VEstBaseLoad(runCy,YTIME)-VBslMaxmLoad(runCy,YTIME)))))*VEstBaseLoad(runCy,YTIME)
+        +(1-1/(1+Exp(iBslCorrection(runCy,YTIME)*(VEstBaseLoad(runCy,YTIME)-VBslMaxmLoad(runCy,YTIME)))))*VBslMaxmLoad(runCy,YTIME);
+
+* Compute total required electricity production
+QTotReqElecProd(runCy,YTIME)$TIME(YTIME)..
+         VTotReqElecProd(runCy,YTIME)
+             =E=
+         sum(HOUR, (VElecPeakLoad(runCy,YTIME)-VCorrBaseLoad(runCy,YTIME))
+                   * exp(-iLoadCurveConstr(runCy,YTIME)*(0.25+(ord(HOUR)-1)))
+             ) + 9*VCorrBaseLoad(runCy,YTIME);   
+
+* Compute Estimated total electricity generation capacity
+QTotEstElecGenCap(runCy,YTIME)$TIME(YTIME)..
+        VTotElecGenCapEst(runCy,YTIME)
+             =E=
+        iResMargTotAvailCap(runCy,"TOT_CAP_RES",YTIME) * VTotElecGenCap(runCy,YTIME-1)
+        * VElecPeakLoad(runCy,YTIME)/VElecPeakLoad(runCy,YTIME-1);          
+
+* Compute total electricity generation capacity
+QTotElecGenCap(runCy,YTIME)$TIME(YTIME)..
+        VTotElecGenCap(runCy,YTIME) 
+         =E=
+     VTotElecGenCapEst(runCy,YTIME);  
+
+* Compute hourly production cost used in investment decisions
+QHourProdCostInv(runCy,PGALL,HOUR,YTIME)$(TIME(YTIME)) ..
+         VHourProdTech(runCy,PGALL,HOUR,YTIME) =E=
+                  ( (
+                    ( ( iDisc(runCy,"PG",YTIME-4) * exp(iDisc(runCy,"PG",YTIME-4)*iTechLftPlaType(PGALL))
+                        / (exp(iDisc(runCy,"PG",YTIME-4)*iTechLftPlaType(PGALL)) -1))
+                      * iGrossCapCosSubRen(runCy,PGALL,YTIME-4)* 1E3 * iCGI(runCy,YTIME-4)  + iFixGrosCostPlaType(runCy,PGALL,YTIME-4)
+                    )/iPlantAvailRate(runCy,PGALL,YTIME-4) / (1000*(ord(HOUR)-1+0.25))
+                    + iVarGroCostPlaType(runCy,PGALL,YTIME-4)/1E3 + (VRenValue(YTIME)*8.6e-5)$( not ( PGREN(PGALL) 
+                    $(not sameas("PGASHYD",PGALL)) $(not sameas("PGSHYD",PGALL)) $(not sameas("PGLHYD",PGALL)) ))
+                    + sum(PGEF$PGALLtoEF(PGALL,PGEF), (VFuelPriceSub(runCy,"PG",PGEF,YTIME-4)*VCO2CO2SeqCsts(runCy,YTIME-4)*1e-3*
+                    iCo2EmiFac(runCy,"PG",PGEF,YTIME-4)
+                         +1e-3*iCo2EmiFac(runCy,"PG",PGEF,YTIME-4)*
+                         (sum(NAP$NAPtoALLSBS(NAP,"PG"),VCarVal(runCy,NAP,YTIME-4))))
+                         *sTWhToMtoe/VPlantEffPlantType(runCy,PGALL,YTIME-4))$(not PGREN(PGALL))
+                  ));
+
+* Compute hourly production cost used in investment decisions
+QHourProdCostInvDec(runCy,PGALL,HOUR,YTIME)$(TIME(YTIME) $NOCCS(PGALL)) ..
+         VHourProdCostTech(runCy,PGALL,HOUR,YTIME) =E=
+         VPowerPlantNewEq(runCy,PGALL,YTIME)*VHourProdTech(runCy,PGALL,HOUR,YTIME)+
+         sum(CCS$CCS_NOCCS(CCS,PGALL), VPowerPlaShrNewEq(runCy,CCS,YTIME)*VHourProdTech(runCy,CCS,HOUR,YTIME)); 
+
+* Compute gamma parameter used in CCS/No CCS decision tree
+QGammaInCcsDecTree(runCy,YTIME)$TIME(YTIME)..
+         VSensCcs(runCy,YTIME) =E= 20+25*EXP(-0.06*((sum(NAP$NAPtoALLSBS(NAP,"PG"),VCarVal(runCy,NAP,YTIME-1)))));
+
+* Compute hourly production cost used in investment decisions"
+QHourProdCostInvDecisions(runCy,PGALL,HOUR,YTIME)$(TIME(YTIME) $(CCS(PGALL) or NOCCS(PGALL))) ..
+         VHourProdCostOfTech(runCy,PGALL,HOUR,YTIME) 
+         =E=
+          VHourProdTech(runCy,PGALL,HOUR,YTIME)**(-VSensCcs(runCy,YTIME))       ;
 * Transport
 
 * Compute passenger cars market extension (GDP dependent)

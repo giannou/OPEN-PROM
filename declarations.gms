@@ -47,16 +47,41 @@ iFuelExprts(allCy,EF,YTIME)	                    "Fuel Exports (Mtoe)"
 iSuppExports(allCy,EF,YTIME)                	"Supplementary parameter for  exports (Mtoe)"
 iRatioImpFinElecDem(allCy,YTIME)	            "Ratio of imports in final electricity demand (1)"	
 iElastCO2Seq(allCy,CO2SEQELAST)	                "Elasticities for CO2 sequestration cost curve (1)"	
-iBaseLoadShareDem(allCy,DSBS,YTIME)	            "Baseload share of demand per sector (1)"		
+iBaseLoadShareDem(allCy,DSBS,YTIME)	            "Baseload share of demand per sector (1)"
+iLoadFacElecDem(allCy,DSBS,YTIME)	            "Load factor of electricity demand per sector (1)"
+iMxmLoadFacElecDem(allCy,YTIME)	                "Maximum load factor of electricity demand (1)"	
+iBslCorrection(allCy,YTIME)	                    "Parameter of baseload correction (1)"
+iLoadCurveConstr(allCy,YTIME)	                "Parameter for load curve construction (1)"
+iResMargTotAvailCap(allCy,PGRES,YTIME)	        "Reserve margins on total available capacity and peak load (1)"
+iTechLftPlaType(PGALL)	                        "Technical Lifetime per plant type (year)"/
+$ondelim
+$include "./iTechLftPlaType.csv"
+$offdelim
+/
+iPlantAvailRate(allCy,PGALL,YTIME)	    "Plant availability rate (1)"
+iGrossCapCosSubRen(allCy,PGALL,YTIME)	"Gross Capital Cost per Plant Type with subsidy for renewables (kEuro2005/KW)"		
+iVarGroCostPlaType(allCy,PGALL,YTIME)	"Variable gross cost other than fuel per Plant Type (Euro2005/KW)"
+iCapGrossCosPlanType(allCy,PGALL,YTIME)	"Capital gross cost per plant type (kEuro2005/KW)"	
+iFixGrosCostPlaType(allCy,PGALL,YTIME)	  "Fixed O&M Gross Cost per Plant Type (Euro2005/KW)"										
 ;
 
 
 Equations
 *** Power Generation
-QElecDem(allCy,YTIME)         "Compute total electricity demand"
-QElecConsAll(allCy,DSBS,YTIME)"Compute electricity consumption per final demand sector"
-QEstBaseLoad(allCy,YTIME)	  "Compute estimated base load"	
-
+QElecDem(allCy,YTIME)                      "Compute total electricity demand"
+QElecConsAll(allCy,DSBS,YTIME)             "Compute electricity consumption per final demand sector"
+QEstBaseLoad(allCy,YTIME)	               "Compute estimated base load"	
+QLoadFacDom(allCy,YTIME)	               "Compute load factor of entire domestic system"
+QElecPeakLoad(allCy,YTIME)	               "Compute elerctricity peak load"		
+QBslMaxmLoad(allCy,YTIME) 	               "Compute baseload corresponding to maximum load"
+QElecBaseLoad(allCy,YTIME)	               "Compute electricity base load"
+QTotReqElecProd(allCy,YTIME)               "Compute total required electricity production"
+QTotEstElecGenCap(allCy,YTIME)             "Compute Estimated total electricity generation capacity"	
+QTotElecGenCap(allCy,YTIME)	               "Compute total electricity generation capacity"
+QHourProdCostInv(allCy,PGALL,HOUR,YTIME)   "Compute hourly production cost used in investment decisions"
+QHourProdCostInvDec(allCy,PGALL,HOUR,YTIME)"Compute hourly production cost used in investment decisions"
+QGammaInCcsDecTree(allCy,YTIME)	           "Compute gamma parameter used in CCS/No CCS decision tree"
+QHourProdCostInvDecisions(allCy,PGALL,HOUR,YTIME)	"Compute hourly production cost used in investment decisions"									
 *** Transport
 QMExtV(allCy,YTIME)            "Compute passenger cars market extension (GDP dependent)"
 QMExtF(allCy,YTIME)            "Compute passenger cars market extension (GDP independent)"
@@ -128,10 +153,21 @@ qDummyObj                                     "Define dummy objective function"
 Variables
 
 *** Power Generation Variables
-VEstBaseLoad(allCy,YTIME)	          "Estimated base load (GW)"	
-VElecDem(allCy,YTIME)                 "Total electricity demand (TWh)"
-
-
+VEstBaseLoad(allCy,YTIME)	              "Estimated base load (GW)"	
+VElecDem(allCy,YTIME)                     "Total electricity demand (TWh)"
+VCapChpPlants(allCy,YTIME)                "Capacity of CHP Plants (GW)"	
+VElecPeakLoad(allCy,YTIME)	              "Electricity peak load (GW)"	
+VBslMaxmLoad(allCy,YTIME)	              "Baseload corresponding to Maximum Load Factor (1)"
+VHourProdCostOfTech(allCy,PGALL,HOUR,YTIME)"Hourly production cost of technology (Euro/KWh)"	
+VHourProdTech(allCy,PGALL,HOUR,YTIME)     "Hourly production cost of technology (Euro/KWh)"
+VSensCcs(allCy,YTIME)	                  "Variable that controlls the sensitivity of CCS acceptance (1)"			
+VCorrBaseLoad(allCy,YTIME)	              "Corrected base load (GW)"
+VPowerPlantNewEq(allCy,PGALL,YTIME)	      "Power plant share in new equipment (1)"
+VPowerPlaShrNewEq(allCy,PGALL,YTIME)	  "Power plant share in new equipment (1)"		
+VHourProdCostTech(allCy,PGALL,HOUR,YTIME) "Hourly production cost of technology (Euro/KWh)"		
+VTotReqElecProd(allCy,YTIME)	      "Total required electricity production (TWh)"	
+VTotElecGenCapEst(allCy,YTIME)	      "Estimated Total electricity generation capacity (GW)"	
+VTotElecGenCap(allCy,YTIME)	          "Total electricity generation capacity (GW)"	
 VFeCons(allCy,EF,YTIME)               "Total final energy consumnption (Mtoe)"
 VFNonEnCons(allCy,EFS,YTIME)          "Final non energy consumption (Mtoe)"
 VLosses(allCy,EFS,YTIME)              "Distribution losses (Mtoe)"
